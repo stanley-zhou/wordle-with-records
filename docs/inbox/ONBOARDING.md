@@ -1,7 +1,8 @@
 # Crew Onboarding — read this first if you've been recruited
 
-Welcome to **⟦PROJECT-NAME⟧** — ⟦PROJECT-ONE-LINER⟧ <!-- one line: what this
-project is and who the human collaborator(s) are -->.
+Welcome to **wordle-with-records** — a computer-science Wordle (static Vue SPA
+on GitHub Pages) built decision-first with Stanley (Yuxiang Zhou), who is
+learning this methodology on this project.
 
 This document captures **80% of what every seat needs to know** so per-recruit
 briefs can be short deltas (name, color, mission). Fill the bracketed
@@ -60,8 +61,12 @@ the tmux hive.
 
 ## 1. What this project is
 
-⟦PROJECT-GOAL⟧ <!-- 1-3 sentences: the goal, the repo's role (product repo?
-coordination layer?), where implementation happens; same token as CLAUDE.md's -->
+A Wordle variant whose answers are all computer-science vocabulary (ARRAY,
+STACK, QUEUE, CACHE, TOKEN…): guess the word, get per-letter colored feedback.
+It ships as a static Vue single-page app on GitHub Pages — free hosting, no
+backend, therefore no server-side secret — with component-scoped CSS so styles
+stay local to the component that owns them. This repo is both the product and
+its record: implementation lives here next to the ADRs that decided it.
 
 **Read first**, in order:
 1. `CLAUDE.md` — directives, project context, workflow

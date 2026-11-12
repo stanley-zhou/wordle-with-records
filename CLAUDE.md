@@ -1,19 +1,9 @@
 # CLAUDE.md - Project Guidance
 
-> **Instantiating this template?** Placeholders look like ⟦THIS⟧ — fill-and-delete
-> each one (grep-proof on purpose; `just instantiate-check` reports which remain
-> and passes only when none do). Square-bracket text elsewhere is either a
-> per-document mold slot (filled at each mint, not at birth) or the frozen
-> dialogue placeholder `[Fill this in]` — never convert those. *(This note is
-> visible text, not an HTML comment, because the harness strips block comments
-> from the CLAUDE.md it serves at session start — a cold instantiator proved the
-> instructions were sitting exactly where their audience could not see them.
-> Delete this block when instantiation is done.)*
-
-- **Project**: ⟦PROJECT-NAME⟧
-- **Human**: ⟦HUMANS⟧
-- **AI**: ⟦AI-SEATS⟧ <!-- with the crew layer, the roster lives in docs/inbox/agent-sessions.json; name the coordinator seat here -->
-- **Last Updated**: ⟦LAST-UPDATED⟧
+- **Project**: wordle-with-records — a computer-science Wordle, built decision-first
+- **Human**: Yuxiang Zhou (Stanley, GitHub [@stanley-zhou](https://github.com/stanley-zhou))
+- **AI**: Setter 5 (Claude Opus 5, 1M context) — coordinator seat; roster in [`docs/inbox/agent-sessions.json`](docs/inbox/agent-sessions.json)
+- **Last Updated**: 2026-11-12
 
 ---
 
@@ -98,15 +88,24 @@ Tests should:
 **RUN THIS PROJECT'S VERIFICATION GATE BEFORE EVERY COMMIT**
 
 Before serving any change:
-1. Run the project's verification gate: ⟦VERIFICATION-GATE⟧ <!-- test suite, build, linter, or a combination; e.g. `npm test`, `uv run pytest`, `hugo && bin/check` -->
+1. Run the project's verification gate: `just gate`
 2. Fix any failures before committing
 3. Never serve changes with a failing gate
 
-**Why**: ⟦GATE-WHY⟧ <!-- state what this project's gate actually catches — real classes of bug, real numbers if you have them. A directive that names a real gate gets followed; an unfollowable one teaches every seat that directives are decorative, and that lesson generalizes. -->
+**Why**: `just gate` is one command whose contents grow with the project; it is green today and it has already earned its keep.
+
+*What it catches right now* (day-one layer, before any app code exists):
+- `just instantiate-check` — unfilled ⟦SIGIL⟧ placeholders and lingering template fixture files. Completeness is computed, not remembered.
+- `scripts/groups-lookup.py --validate` — a malformed crew registry, *and* the Python interpreter/encoding path every other crew recipe depends on. On session one (2026-11-12) running the gate is what surfaced three real bugs in ten minutes: `agent-sessions.json` read with the platform ANSI codepage (`UnicodeDecodeError: 'gbk' codec`, fatal on this CJK-locale Windows box), emoji written to a cp936 stdout (`UnicodeEncodeError`), and `registry_lib.load_config()` calling `sys.exit` with no `sys` imported. None were reachable by reading the code; all three were one gate run away.
+
+*What it must also catch once the app exists* — add each to the `gate` recipe's marked slot the moment it is real, and never leave the slot empty while code is shipping:
+- `npm run build` — Vue SFC template/compile errors and bad imports, which in a Vite SPA fail at build rather than at lint, and would otherwise be discovered by a visitor seeing a white page on GitHub Pages.
+- `npm run test:unit` — the per-letter feedback scorer. This is the one algorithm in a Wordle that is genuinely easy to get wrong (duplicate-letter marking: guess `GEESE` against answer `SEEDS` must not report three greens-or-yellows for `E`). A scoring regression is invisible in casual play and corrupts every game.
+- `npm run lint` / `vue-tsc` — once ADR-0003 settles whether this project is typed.
 
 **Process**:
 ```bash
-⟦VERIFICATION-GATE⟧            # Must be green before commit
+just gate                      # Must be green before commit
 git add <explicit paths>       # never -A: stage by path, commit by pathspec — see CONVENTIONS.md, shared-worktree awareness
 git commit -m "..." -- <paths>
 ```
@@ -256,13 +255,20 @@ If the script was successfully used, append as comments how, and what the outcom
 ## Project Context
 
 ### What we're building:
-⟦PROJECT-GOAL⟧ <!-- 1-3 sentences; same token as ONBOARDING's — one text serves both -->
+A Wordle variant whose answers are all computer-science vocabulary (ARRAY, STACK, QUEUE, CACHE, TOKEN…): guess the word, get per-letter colored feedback. It ships as a static Vue single-page app on GitHub Pages — free hosting, no backend, therefore no server-side secret — with component-scoped CSS so styles stay local to the component that owns them. This repo is both the product and its record: implementation lives here next to the ADRs that decided it.
 
 ### Current focus:
-⟦CURRENT-FOCUS⟧
+**Pre-code deliberation.** Three decisions are on the table before any implementation, each an ADR with open QSTs awaiting Stanley's answers:
+- ADR-0001 — the answer corpus and what counts as a legal guess
+- ADR-0002 — puzzle cadence (shared daily vs. endless) and what "records" means here
+- ADR-0003 — build, hosting, and deploy topology for GitHub Pages
+
+`just unanswered` lists what is waiting. Implementation starts when 0001–0003 are decided.
 
 ### Key decisions made:
-*(List ADRs here as they land, e.g. `- Auth approach — see docs/adr/0001-*.md`. Empty at birth is healthy.)*
+- Answer corpus & guess validation — see [`docs/adr/0001-answer-corpus-and-guess-validation.md`](docs/adr/0001-answer-corpus-and-guess-validation.md) *(open)*
+- Puzzle cadence & player records — see [`docs/adr/0002-puzzle-cadence-and-player-records.md`](docs/adr/0002-puzzle-cadence-and-player-records.md) *(open)*
+- Build, hosting & deploy topology — see [`docs/adr/0003-build-hosting-and-deploy-topology.md`](docs/adr/0003-build-hosting-and-deploy-topology.md) *(open)*
 
 ### Open questions:
 ```bash
