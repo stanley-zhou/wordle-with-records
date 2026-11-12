@@ -3,8 +3,8 @@
 # ADR-0003: Build, hosting and deploy topology
 
 - **Date**: 2026-11-12
-- **Iteration**: 1
-- **Status**: Draft
+- **Iteration**: 2
+- **Status**: Accepted
 - **Deciders**: Yuxiang Zhou (Stanley), Setter 5 (Claude Opus 5, 1M context)
 
 **TL;DR**: Vue 3 + Vite, deployed to GitHub Pages by Actions — settling only the two choices that are expensive to reverse: typed or untyped, and which URL the site lives at.
@@ -43,7 +43,7 @@ Three of the four things that message specifies are already decided by it: **Git
 ## Questions
 
 ### QST-TYPESCRIPT: TypeScript or plain JavaScript?
-- Status: unanswered
+- Status: answered
 - Why asking: It is the one toolchain choice that touches every file written after it, and converting a populated codebase later is real work rather than a flag. It is also a genuine fork for *this* project rather than a reflex, because the arguments cut both ways: the codebase will be small (a board, a keyboard, a scorer, a corpus loader), which weakens the usual "types pay for themselves at scale" case — but the one algorithm here, the per-letter feedback scorer, is exactly the kind of code where a three-state union (`'exact' | 'present' | 'absent'`) stops a whole class of typo at author time, and its duplicate-letter bug is the failure named in CLAUDE.md's Fifth Directive. Your own fluency matters more than either argument, which is why this is a question and not an assumption.
 - Need: pick a letter (or override — any shape answers)
 
@@ -56,13 +56,13 @@ Options:
 
 **A — TypeScript.** *Rationale*: Three specific things, not a general preference. First, the scorer: its output is a three-state-per-position array, and the duplicate-letter algorithm sketched in [ADR-0001's COD block](0001-answer-corpus-and-guess-validation.md#cod-the-duplicate-letter-trap-the-scorer-must-not-fall-into) is exactly where a union type earns its keep — the compiler will not let a fourth state leak in from a careless branch. Second, the gate: CLAUDE.md's Fifth Directive wants the gate to catch real classes of bug before commit, and `vue-tsc` is a free, fast check that catches a real class, which is a better reason than "TypeScript is good practice." Third, the cost of being wrong is asymmetric — `.ts` → `.js` is deleting annotations, `.js` → `.ts` on a populated codebase is a weekend. I am rejecting C not on merit but on realism: the half-typed JSDoc codebase is a well-attested resting state. *Confidence*: 0.8 — because the scorer-and-gate argument is concrete and the asymmetry is real, but this trades against your fluency, which I cannot see; it sits in the "your call" band on purpose. *If wrong*: if you find yourself fighting type errors instead of writing game logic — if the annotations are where your attention goes in the first week — this flips to **B**, and we strip them rather than live with a toolchain that is taxing the author it was meant to help.
 
-**ANS:** (by Stanley)
-[Fill this in]   <!-- literal placeholder — parser-significant, do not paraphrase -->
+**ANS:** (by Yuxiang Zhou)
+A — I'm targeting AI engineering roles where TS is common, so the learning is part of the point. Your flip condition stands: if type errors eat the first week, strip to B.
 
 ---
 
 ### QST-SITE-URL: Which GitHub Pages URL does this live at?
-- Status: unanswered
+- Status: answered
 - Why asking: Not cosmetics — it sets Vite's `base` option, and getting it wrong is the most likely first production failure here. A **project site** is served from a subdirectory (`https://stanley-zhou.github.io/wordle-with-records/`), so every asset URL needs the `/wordle-with-records/` prefix baked in at build time; with Vite's default `base: '/'` the dev server is flawless and production is a white page with 404s in the console, which is a confusing thing to debug on your first deploy. A **user site** (`https://stanley-zhou.github.io`) is served from the root, so `base` stays default — but it requires a repository literally named `stanley-zhou.github.io`, and you only get one per account, so spending it here means this game is the front door of your GitHub presence. A **custom domain** also serves from root. The answer is one config line; knowing which line is the point of asking.
 - Need: pick a letter (or override — any shape answers)
 
@@ -75,8 +75,8 @@ Options:
 
 **A — project site, with `base` set explicitly and the reason written in the config.** *Rationale*: It is free, it is where the repo already is (origin is `github.com/stanley-zhou/wordle-with-records`), and it spends nothing you cannot spend twice — whereas B consumes your single user site on a first project, which is a decision about your GitHub identity rather than about this game. The subdirectory trap is the only real cost, and it is a known, one-line, permanently-fixable cost rather than a risk: `base: '/wordle-with-records/'`, with a comment saying that renaming the repo breaks the deploy. B and C both remain available later, since moving a static site between URLs is a DNS or settings change, not a rebuild. *Confidence*: 0.9 — because the trade is nearly free and fully reversible, and the base-path failure mode is well-understood and verifiable on the first deploy. *If wrong*: if you already own a domain you intend to use, this flips to **C** immediately — it is strictly nicer, `base` stays `'/'`, and the trap disappears entirely.
 
-**ANS:** (by Stanley)
-[Fill this in]   <!-- literal placeholder — parser-significant, do not paraphrase -->
+**ANS:** (by Yuxiang Zhou)
+A — I already run another project (pilot-light) as a project site at stanley-zhou.github.io/pilot-light/, so this matches an existing pattern. No custom domain; keep the root user site free.
 
 ---
 
@@ -127,14 +127,26 @@ The founding message fixed hosting, framework, and styling. What remains are the
 ### Options
 Enumerated per-question above (QST-TYPESCRIPT A–C, QST-SITE-URL A–C). The four toolchain choices in Explicitation are assumptions pending confirmation, not open questions — each is reversible in under a day.
 
-### Chosen: *pending Stanley's answers*
+### Chosen: Vue 3 + Vite + TypeScript, deployed by Actions to a Pages project site
 
-**Rationale**: [To be written from the answers.]
+Concretely:
+1. **TypeScript**, via `npm create vue@latest` with TS on. `vue-tsc` joins the verification gate.
+2. **Project site** at `https://stanley-zhou.github.io/wordle-with-records/`, with `base: '/wordle-with-records/'` set explicitly in `vite.config.ts` and a comment saying that renaming the repository breaks the deploy.
+3. **The four Explicitation assumptions stand uncontested**: Vite, the official Actions Pages flow rather than a `gh-pages` branch, no router, Vitest.
 
-**Trade-offs accepted**: [To be written at decision time.]
+**Rationale**: Both answers matched the recommendations, and both came with a reason stronger than the one I offered. On TypeScript I argued from the scorer's three-state union and from `vue-tsc` being a free real check for a gate that CLAUDE.md promises will catch real classes of bug — a deliberately narrow case, since the usual "types pay off at scale" argument is weak for a codebase this small. Stanley's reason is better and outranks mine: he is targeting AI-engineering roles where TypeScript is common, so the learning is part of the deliverable, which turns an argument about this codebase into one about his. On the site URL, my case was that a project site is free and spends nothing irreversible while a user site spends the one `stanley-zhou.github.io` on a first project. His answer adds the fact I did not have — he already runs `pilot-light` as a project site — so this is consistency with an established pattern rather than a fresh trade-off, and the root user site stays deliberately free.
+
+**Trade-offs accepted**:
+- **Annotations everywhere, and build failures that are sometimes type errors rather than bugs.** The flip condition from the recommendation survives into the answer, in Stanley's own words: if type errors eat the first week, strip to plain JS. Recorded as a live trigger, not a closed option.
+- **The repository can never be renamed without changing `base`.** Hence the comment in the config: the failure is a blank production page while the dev server stays perfect.
+- **No router**, so deep links to a particular puzzle are not possible. Irrelevant under endless play ([ADR-0002](0002-puzzle-cadence-and-player-records.md)); it would want revisiting if cadence reopens as daily and shareable.
 
 ### Consequences
-[To be written at decision time.]
+- `vite.config.ts` carries `base: '/wordle-with-records/'` and the warning comment.
+- `.github/workflows/deploy.yml` uses `actions/configure-pages` → `actions/upload-pages-artifact` → `actions/deploy-pages`; built output never enters git history.
+- `package.json` gains `build`, `test:unit`, `type-check`, and `lint` scripts — and the `gate` recipe's marked project slot is filled **in the same commit that creates them**, so CLAUDE.md's Fifth Directive stops promising checks that do not exist.
+- The scorer is typed as a three-state union, which is also where [ADR-0001](0001-answer-corpus-and-guess-validation.md)'s semantic-states-not-colours constraint becomes compiler-enforced rather than a note: a theme maps states to colours, and the scorer cannot return a colour because the type forbids it.
+- Pages must be enabled on the repository with source "GitHub Actions" before the first deploy can succeed. Stanley's action, listed below.
 
 ---
 
@@ -142,7 +154,7 @@ Enumerated per-question above (QST-TYPESCRIPT A–C, QST-SITE-URL A–C). The fo
 
 - [ ] **Concern — colour alone carries the game's entire feedback channel, and that excludes players.** Green/yellow/grey per letter is the whole output of the scorer, and red-green colour blindness affects roughly 8% of men. Wordle shipped a high-contrast mode (orange/blue) for exactly this reason. The scorer should therefore return *semantic* states (`exact` / `present` / `absent`) and never colours, so a theme can remap them — and a shape or letter-position cue is worth considering alongside. Noted here so the choice is deliberate; it belongs to a presentation ADR, not this one, but the scorer's return type is settled by QST-TYPESCRIPT **now**, so the constraint has to be on the record before implementation.
 - [ ] **Future task — fill the `gate` recipe's project slot the same day the first `npm script` exists.** CLAUDE.md's Fifth Directive currently promises checks that do not yet exist. A directive that names an absent gate teaches every future seat that directives are decorative; the promise and the recipe must converge quickly.
-- [ ] **Concern — bundle size if QST-GUESS-LEGALITY resolves to B or C.** An English five-letter dictionary is roughly 50–80 KB gzipped. Fine for a game, but it should be a lazily-loaded asset rather than inlined into the main chunk, so the board paints before the dictionary arrives.
+- [ ] **Concern, now live — bundle size for the guess dictionary.** QST-GUESS-LEGALITY resolved to **B**, so the ~50–80 KB gzipped asset is confirmed rather than hypothetical. Lazily loaded, never inlined into the main chunk, so the board paints before the dictionary arrives — and under [ADR-0001](0001-answer-corpus-and-guess-validation.md)'s build order it does not exist at all until its licence is recorded, which makes "the game must be playable without it" a hard requirement rather than good practice.
 - [ ] **Unverified assumption — GitHub Pages is enabled on this repository.** Needs one visit to Settings → Pages, source "GitHub Actions". Worth confirming before the first deploy rather than debugging it as a failure.
 - [ ] **Future task — decide whether `kintsugi adopt` runs here.** `kintsugi.yaml` is present with no lock file and no `kintsugi` CLI installed, so upstream template fixes will never reach this instance. `just gate` treats this as advisory rather than fatal (see the recipe's comment). Stanley's call, not a precondition for shipping code.
 
@@ -150,22 +162,22 @@ Enumerated per-question above (QST-TYPESCRIPT A–C, QST-SITE-URL A–C). The fo
 
 ## Action Items
 
-- [ ] Answer QST-TYPESCRIPT — Owner: Stanley
-- [ ] Answer QST-SITE-URL — Owner: Stanley
-- [ ] Confirm or reject the four Explicitation assumptions (Vite, Actions-not-branch, no router, Vitest) — Owner: Stanley
-- [ ] Enable GitHub Pages with source "GitHub Actions" — Owner: Stanley
+- [x] Answer QST-TYPESCRIPT — Owner: Stanley — **done 2026-11-12: A, TypeScript**
+- [x] Answer QST-SITE-URL — Owner: Stanley — **done 2026-11-12: A, project site**
+- [x] Confirm or reject the four Explicitation assumptions — Owner: Stanley — **none contested; all four stand**
+- [ ] **Enable GitHub Pages, source "GitHub Actions"** (Settings → Pages) — Owner: Stanley — the one thing I cannot do for you, and the first deploy fails without it
 - [ ] Scaffold the app and fill the `gate` recipe's project slot in the same commit — Owner: Setter 5
 
 ---
 
 ## Validation
 
-- [ ] Stanley: the toolchain assumptions are acceptable
-- [ ] Stanley: the site URL choice matches what I want this to be
-- [ ] Setter 5: `base` is set and verified against the real deployed URL, not only against the dev server
+- [x] Stanley: the toolchain assumptions are acceptable — none contested
+- [x] Stanley: the site URL choice matches what I want this to be — confirmed, consistent with `pilot-light`
+- [ ] Setter 5: `base` is set and verified against the real deployed URL, not only against the dev server — **this one cannot be ticked from a green local build**, which is the entire reason it is written as a separate row
 - [ ] Setter 5: the scorer returns semantic states, never colours, so the accessibility follow-up stays open rather than foreclosed
 
-**Notes**: The founding message's three specifications — Pages, Vue, scoped CSS — are treated as decided inputs. If any was a default rather than a preference, say so; the cheapest moment to reopen them is before `package.json` exists.
+**Notes**: The founding message's three specifications — Pages, Vue, scoped CSS — were treated as decided inputs and none was contested. Both answers here came back with reasons that outrank the ones I gave: TypeScript because Stanley is targeting roles where it is expected (a fact about his career, not about this codebase), and the project site because `pilot-light` already establishes the pattern. Worth recording as a pattern in its own right — the recommendation's job was to make accepting cheap, and in both cases the human's *rationale* was better than mine even where the pick was identical.
 
 ---
 
@@ -176,6 +188,12 @@ Enumerated per-question above (QST-TYPESCRIPT A–C, QST-SITE-URL A–C). The fo
 - Contributors: Setter 5 (Claude Opus 5, 1M context)
 - Changes: Initial draft. Two questions (typing, site URL); four toolchain choices recorded as reversible assumptions rather than cards, to keep the first answering sitting short.
 - Outcome: Status `Draft`; awaiting answers.
+
+### Iteration 2 (2026-11-12)
+- Trigger: Stanley answered both questions and left all four Explicitation assumptions uncontested.
+- Contributors: Yuxiang Zhou (answers), Setter 5 (Claude Opus 5, 1M context — decision write-up)
+- Changes: QST-TYPESCRIPT → `answered` (**A**; his reason — TypeScript is expected in the roles he is targeting, so the learning is part of the point — outranks my scorer-and-gate argument, and his flip condition is recorded live: strip to plain JS if type errors eat the first week). QST-SITE-URL → `answered` (**A**; `pilot-light` already runs as a project site, so this is pattern-consistency, and the root user site stays free). Decision section written. The dictionary bundle-size follow-up promoted from conditional to live now that QST-GUESS-LEGALITY ruled B.
+- Outcome: Status `Draft` → `Accepted`. All questions closed; scaffolding unblocked.
 
 ---
 

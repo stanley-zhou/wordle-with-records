@@ -258,17 +258,18 @@ If the script was successfully used, append as comments how, and what the outcom
 A Wordle variant whose answers are all computer-science vocabulary (ARRAY, STACK, QUEUE, CACHE, TOKEN…): guess the word, get per-letter colored feedback. It ships as a static Vue single-page app on GitHub Pages — free hosting, no backend, therefore no server-side secret — with component-scoped CSS so styles stay local to the component that owns them. This repo is both the product and its record: implementation lives here next to the ADRs that decided it.
 
 ### Current focus:
-**Pre-code deliberation.** Three decisions are on the table before any implementation, each an ADR with open QSTs awaiting Stanley's answers:
-- ADR-0001 — the answer corpus and what counts as a legal guess
-- ADR-0002 — puzzle cadence (shared daily vs. endless) and what "records" means here
-- ADR-0003 — build, hosting, and deploy topology for GitHub Pages
-
-`just unanswered` lists what is waiting. Implementation starts when 0001–0003 are decided.
+**Implementing v1**, now that ADR-0001–0003 are all `Accepted` with no questions open (`just unanswered` confirms). In flight:
+1. Scaffold Vue 3 + Vite + TypeScript; `base: '/wordle-with-records/'`; Actions→Pages workflow.
+2. `src/game/score.ts` — the feedback scorer, **its duplicate-letter regression test written first**.
+3. A drafted ~60-word CS corpus for Stanley to ratify strike-a-row.
+4. Fill the `gate` recipe's project slot in the same commit that creates the npm scripts, so the Fifth Directive stops promising checks that do not exist.
 
 ### Key decisions made:
-- Answer corpus & guess validation — see [`docs/adr/0001-answer-corpus-and-guess-validation.md`](docs/adr/0001-answer-corpus-and-guess-validation.md) *(open)*
-- Puzzle cadence & player records — see [`docs/adr/0002-puzzle-cadence-and-player-records.md`](docs/adr/0002-puzzle-cadence-and-player-records.md) *(open)*
-- Build, hosting & deploy topology — see [`docs/adr/0003-build-hosting-and-deploy-topology.md`](docs/adr/0003-build-hosting-and-deploy-topology.md) *(open)*
+- **Answer corpus & guess validation** — [ADR-0001](docs/adr/0001-answer-corpus-and-guess-validation.md) *(Accepted)*: answers from a hand-ratified CS corpus (~60 words in v1, growing toward ~300); guesses validated against a standard English five-letter list, which must carry a recorded source and licence and therefore arrives *after* the first playable build, behind an interface.
+- **Puzzle cadence & player records** — [ADR-0002](docs/adr/0002-puzzle-cadence-and-player-records.md) *(Accepted)*: "records" means these ADRs, not player stats — no stats, streaks, or histograms in v1. Endless practice, no calendar; reopens as UTC-daily if the game is ever shared with a cohort.
+- **Build, hosting & deploy topology** — [ADR-0003](docs/adr/0003-build-hosting-and-deploy-topology.md) *(Accepted)*: Vue 3 + Vite + TypeScript, Vitest, no router; GitHub Actions to a Pages **project site** at `stanley-zhou.github.io/wordle-with-records/`.
+
+**Two standing constraints from those records, for anyone writing game code here**: the scorer returns semantic states (`exact` / `present` / `absent`) and **never colours**, so a colour-blind theme stays possible — colour is currently the game's entire feedback channel. And a persisted board must carry its puzzle's identity, because endless play has no date to invalidate a stale board against.
 
 ### Open questions:
 ```bash
