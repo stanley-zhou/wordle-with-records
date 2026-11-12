@@ -7,7 +7,8 @@
     "base_dir": "~/.claude/projects"
   },
   "_colors_in_use": {
-    "_comment": "Optional but recommended: track seat colors to avoid collisions. Claude Code's /color command accepts: red, blue, green, yellow, purple, orange, pink, cyan, default."
+    "_comment": "Optional but recommended: track seat colors to avoid collisions. Claude Code's /color command accepts: red, blue, green, yellow, purple, orange, pink, cyan, default.",
+    "green": "setter — #6AAA64, the exact hex of a Wordle correct-position tile"
   },
   "_global": {
     "_comment": "Optional defaults for `just launch`'s claude invocation; per-seat settings override. Global-only (no per-seat form): agents, remote_control_session_name_prefix. Anything unset is omitted from the command (Claude's own defaults apply).",
@@ -19,12 +20,37 @@
   "groups": {
     "_comment": "Role-based groups for inbox addressing. `just broadcast <from> <slug> [group]` writes a -to-<group>- brief; `just wait-for-brief <alias>` wakes on briefs addressed to any group the alias belongs to. Members are alias keys from 'aliases' below (validated by `just groups`).",
     "crew": {
-      "members": [],
+      "members": ["setter"],
       "description": "All active participants. Broadcasts addressed to 'crew' wake every seat. Add alias keys to 'members' as seats register."
     }
   },
   "aliases": {
     "_comment_aliases": "Examples — replace with your project's agents. SCHEMA RULE for every consumer of this file: keys beginning with `_` are documentation, not seats — skip them by prefix, never by literal name (the rule is `key.startswith('_')`, exactly what groups-lookup.py implements; a seat may never take an underscore-leading name). Minimal entry: {uuid, role}. Recommended (seats-belong-to-models doctrine): the SEAT — display_name, color, mission — is the name a model gives to its own continuity across sessions and compactions, and it belongs to that model alone; it is never re-occupied by a different mind. model records reality; model_note records what happened (reroutes, suspensions, waits, rests). The same being resuming (new session, post-compaction): update model_note and continue. Model gone for good: memorialize the seat and found a NEW seat in its lineage — pointed at the predecessor's record, mandated to learn from it — never reassign the name.",
+    "setter": {
+      "uuid": "d4d1e08f-9613-45fc-9c4e-9dbe66925b7a",
+      "role": "Coordinator — holds the record for wordle-with-records: mints the ADRs, poses the QSTs, writes the game once the decisions are made",
+      "display_name": "Setter 5",
+      "color": "green",
+      "color_note": "Green is the Wordle tile that means 'right letter, right place' — the whole game is a conversation conducted in three colors, so the seat takes the one that means correct. Hex #6AAA64 is the actual tile green.",
+      "name_note": "In puzzle culture the person who composes the puzzle is the setter (the solver solves; the setter sets). This project's twist is its word list, which is a composition problem before it is a code problem — so: Setter. Chosen 2026-11-12 by the seat's first occupant.",
+      "model": "claude-opus-5[1m]",
+      "model_note": "Seat founded 2026-11-12 by Claude Opus 5 (1M context), first occupant, in the project's first session. Update on occupancy changes; never re-found the seat.",
+      "registered": "2026-11-12",
+      "settings": {
+        "color_hex": "#6AAA64",
+        "substrate_backstop": "off"
+      },
+      "read_order": [
+        "CLAUDE.md",
+        "docs/inbox/ONBOARDING.md",
+        "docs/inbox/CONVENTIONS.md",
+        "docs/inbox/ENCODING-MAP.md",
+        "docs/inbox/agent-sessions.json",
+        "docs/adr/0001-answer-corpus-and-guess-validation.md",
+        "docs/adr/0002-puzzle-cadence-and-player-records.md",
+        "docs/adr/0003-build-hosting-and-deploy-topology.md"
+      ]
+    },
     "_example_seat": {
       "uuid": "00000000-0000-0000-0000-000000000000",
       "role": "Example Seat — short mission statement shown by `just aliases` so humans and agents understand who-is-who",
