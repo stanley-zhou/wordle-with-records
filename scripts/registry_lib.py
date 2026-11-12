@@ -18,6 +18,7 @@ import json
 import os
 import re
 import subprocess  # noqa: F401  (kept: _tmux_argv callers pass argv to subprocess)
+import sys  # load_config()'s missing-file branch calls sys.exit — NameError without this
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -33,7 +34,9 @@ def load_config() -> dict:
             "`just discover-sessions` to find session UUIDs for new agents."
         )
     try:
-        with ALIAS_FILE.open() as f:
+        # encoding="utf-8": same Windows-ANSI-codepage trap fixed in
+        # groups-lookup.py (2026-11-12) — the registry has non-ASCII bytes.
+        with ALIAS_FILE.open(encoding="utf-8") as f:
             return json.load(f)
     except json.JSONDecodeError as e:
         sys.exit(f"Alias file is not valid JSON: {e}")

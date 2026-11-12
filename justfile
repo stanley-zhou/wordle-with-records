@@ -32,6 +32,22 @@
 # operational proving grounds (caring-feedback crews → ADRs4AI meta repo, with
 # fixes by Naturalist 5 and the vscode-adrs-for-ai crew). Attributions stack.
 
+# LOCAL ADAPTATION (reconcile-class, 2026-11-12, wordle-with-records):
+# Python launcher, because `python3` is not portable to this project's box.
+# Windows ships a `python3` App Execution Alias that is a Store stub: it exits
+# 49 having run nothing, so every python3-backed recipe (`groups`, `crew`,
+# `blame`, `refresh-terminals`, and `gate`'s registry validation) failed
+# silently-ish before a line of project code existed. Override with
+# `PY=... just <recipe>` if your interpreter lives elsewhere.
+PY := env("PY", if os_family() == "windows" { "python" } else { "python3" })
+
+# Second half of the same portability fix: these scripts print emoji, and on a
+# CJK-locale Windows box Python's stdout defaults to the ANSI codepage (cp936),
+# so `print("📋 …")` raised UnicodeEncodeError *after* the file read was fixed.
+# Exported here rather than patched into each script: it is the environment
+# that is narrow, not the code.
+export PYTHONIOENCODING := "utf-8"
+
 # Default: list available recipes when `just` is run with no args.
 default:
     @just --list
@@ -211,7 +227,7 @@ discover-sessions:
 [group('crew')]
 [doc("List configured groups (docs/inbox/agent-sessions.json)")]
 groups:
-    @python3 scripts/groups-lookup.py --list
+    @{{PY}} scripts/groups-lookup.py --list
 
 # Quick crew status dashboard: aliases + colors + last-active + recent briefs.
 [group('crew')]
@@ -222,12 +238,12 @@ crew:
     if [[ ! -f docs/inbox/agent-sessions.json ]]; then
         echo "❌ No docs/inbox/agent-sessions.json found"; exit 1
     fi
-    python3 - <<'EOF'
+    {{PY}} - <<'EOF'
     import json, os, re, glob
     from pathlib import Path
     from time import time
 
-    with open("docs/inbox/agent-sessions.json") as f:
+    with open("docs/inbox/agent-sessions.json", encoding="utf-8") as f:
         data = json.load(f)
     base_dir = os.path.expanduser(data.get("_storage", {}).get("base_dir", "~/.claude/projects"))
     project_slug = os.getcwd().replace("/", "-")
@@ -308,12 +324,12 @@ recruit model_spec brief='' *flags='':
 [group('crew')]
 [doc("Regenerate .vscode/terminals.json — default: top-up (only seats not already open); --all: every seat (recovery, duplicates by design)")]
 refresh-terminals *args:
-    @python3 scripts/refresh-terminals.py {{args}}
+    @{{PY}} scripts/refresh-terminals.py {{args}}
 
 [group('crew')]
 [doc("Who touched a file, when, per seat (from session tool records): just blame <pattern> [--reads] [-n 50]")]
 blame pattern *flags:
-    @python3 scripts/blame.py {{pattern}} {{flags}}
+    @{{PY}} scripts/blame.py {{pattern}} {{flags}}
 
 [group('crew')]
 [doc("List all seat-* tmux sessions with state (attached/detached)")]
@@ -357,7 +373,7 @@ wait-for-brief recipient timeout_mins='60' poll_secs='15' surface='5':
     inbox="docs/inbox"
     start_time=$(date +%s)
     pattern_direct="*-to-${recipient}-*.md"
-    recipient_groups=$(python3 scripts/groups-lookup.py --recipient "${recipient}" 2>&1 || echo "")
+    recipient_groups=$({{PY}} scripts/groups-lookup.py --recipient "${recipient}" 2>&1 || echo "")
 
     find_briefs() {
         {
@@ -524,9 +540,20 @@ unanswered:
 gate:
     #!/usr/bin/env bash
     set -euo pipefail
-    just instantiate-check
-    python3 scripts/groups-lookup.py --validate
+    # instantiate-check has THREE exit codes, and the gate must not flatten them
+    # (local adaptation, 2026-11-12): 0 = clean, 1 = real failure (sigils left,
+    # fixtures lingering), 2 = instantiation complete BUT kintsugi.yaml has no
+    # kintsugi.lock. Under `set -e` the bare call made every gate run fail on
+    # that warning. Code 2 is advisory — no `kintsugi` CLI is installed here, and
+    # whether this instance subscribes to upstream template fixes is Stanley's
+    # call, not a precondition for committing project code. Revisit if we adopt.
+    INST=0; just instantiate-check || INST=$?
+    if (( INST == 1 )); then echo "❌ gate: instantiation incomplete (see above)" >&2; exit 1; fi
+    if (( INST == 2 )); then echo "   ↑ advisory only — not gating. See the gate recipe's comment." >&2; fi
+    {{PY}} scripts/groups-lookup.py --validate
     # ADD YOUR PROJECT'S OWN GATE HERE when it exists (test suite, build, linter)
+    # Pending per CLAUDE.md Fifth Directive: npm run build, npm run test:unit
+    # (the feedback scorer's duplicate-letter cases), lint/typecheck per ADR-0003.
     echo "✅ gate green (day-one checks; project gate slot above)"
 
 # Is this instance fully instantiated? Greps for remaining ⟦SIGIL⟧ placeholders

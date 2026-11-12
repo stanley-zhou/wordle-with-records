@@ -18,7 +18,12 @@ from pathlib import Path
 def load_agent_sessions(config_path="docs/inbox/agent-sessions.json"):
     """Load and parse agent-sessions.json."""
     try:
-        with open(config_path) as f:
+        # encoding="utf-8" is load-bearing, not decoration: the registry ships
+        # non-ASCII bytes (em-dashes, typographic quotes, the codex seat's "»"),
+        # and bare open() uses the platform's ANSI codepage. On a Windows box
+        # with a CJK locale (cp936/GBK) this raised UnicodeDecodeError and took
+        # `just gate` down with it (wordle-with-records, 2026-11-12).
+        with open(config_path, encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
         print(f"Error: {config_path} not found", file=sys.stderr)
