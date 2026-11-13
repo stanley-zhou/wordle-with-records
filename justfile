@@ -551,10 +551,23 @@ gate:
     if (( INST == 1 )); then echo "❌ gate: instantiation incomplete (see above)" >&2; exit 1; fi
     if (( INST == 2 )); then echo "   ↑ advisory only — not gating. See the gate recipe's comment." >&2; fi
     {{PY}} scripts/groups-lookup.py --validate
-    # ADD YOUR PROJECT'S OWN GATE HERE when it exists (test suite, build, linter)
-    # Pending per CLAUDE.md Fifth Directive: npm run build, npm run test:unit
-    # (the feedback scorer's duplicate-letter cases), lint/typecheck per ADR-0003.
-    echo "✅ gate green (day-one checks; project gate slot above)"
+    # ─── the project's own gate (ADR-0003; filled 2026-11-12, the same commit
+    #     that created these npm scripts, so the Fifth Directive never names a
+    #     check that does not exist) ────────────────────────────────────────
+    #
+    # test:unit FIRST and deliberately: it is ~1s and it is what guards the
+    # feedback scorer's duplicate-letter contract (GEESE vs SEEDS), the answer
+    # corpus's integrity under hand-editing, and the saved-board guard. A
+    # scoring regression is invisible in play and corrupts every game, so it
+    # must never reach a commit.
+    #
+    # build runs vue-tsc first, which catches Vue SFC template/compile errors
+    # and type errors that a dev server happily tolerates — in a Vite SPA
+    # those surface at BUILD time, and their production symptom is a blank
+    # white page rather than an error.
+    npm run test:unit
+    npm run build
+    echo "✅ gate green (day-one checks + project gate: 20 unit tests, type-check, production build)"
 
 # Is this instance fully instantiated? Greps for remaining ⟦SIGIL⟧ placeholders
 # (the closed registry: docs/adr/templates/placeholders.yaml) and warns on

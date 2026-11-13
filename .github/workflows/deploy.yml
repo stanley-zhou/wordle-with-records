@@ -1,0 +1,63 @@
+# Deploy to GitHub Pages — ADR-0003.
+#
+# The official Actions Pages flow (configure-pages -> upload-pages-artifact ->
+# deploy-pages), NOT a gh-pages branch: built output stays out of git history
+# and the deployed commit stays traceable. Recorded as a stated assumption in
+# ADR-0003's Explicitation and left uncontested.
+#
+# ⚠️ ONE-TIME MANUAL STEP: Settings -> Pages -> Source must be set to
+#    "GitHub Actions". Without it the deploy job fails with a permissions
+#    error that reads like a workflow bug. It is an action item on Stanley in
+#    ADR-0003 because it is the one part I cannot do.
+
+name: Deploy to Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a running deploy finish rather than cancelling it; queue the next one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # The project's verification gate, in CI as well as before every commit
+      # (CLAUDE.md, Fifth Directive). A scoring regression must not be able to
+      # reach the deployed site: `test:unit` includes the duplicate-letter
+      # cases, and `build` runs vue-tsc first.
+      - run: npm run test:unit
+      - run: npm run build
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

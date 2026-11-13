@@ -116,16 +116,33 @@ NOT: the 60-word pool does add one consequence that neither original question co
 
 ### COD: the duplicate-letter trap the scorer must not fall into
 ```js
-// The naive scorer marks each guess letter independently against the answer,
-// and is WRONG whenever a letter repeats. Answer SEEDS, guess GEESE:
+// The naive scorer claims exact positions, then marks every other guess
+// letter "present" if it appears ANYWHERE in the answer. That is WRONG
+// whenever a letter repeats.
 //
-//   naive:   G=absent  E=present  E=present  S=present  E=present   <- three E hints
-//   correct: G=absent  E=absent   E=exact    S=present  E=present   <- two
+//   answer   S E E D S
+//   guess    G E E S E
 //
-// The answer has two E's, so at most two E's in the guess may be marked.
-// Correct algorithm is two passes: first claim every exact position, then
-// distribute the REMAINING unclaimed answer letters to the leftovers,
-// left to right. A one-pass scorer passes casual play and silently lies.
+//   naive:   absent  exact  exact  present  present   <- THREE E hints
+//   correct: absent  exact  exact  present  absent    <- two
+//
+// The answer holds exactly two E's. Both are consumed by the exact matches
+// at positions 2 and 3, so the guess's third E (position 5) has nothing
+// left to claim and must read absent. The naive version hands the player a
+// hint for a letter that isn't there.
+//
+// Correct algorithm is two passes: first claim every exact position AND
+// tally only the answer letters those passes did NOT consume; then walk the
+// leftovers left to right, spending from that tally. A one-pass scorer
+// passes casual play and silently lies.
+//
+// (Corrected 2026-11-12, Iteration 2 — this block's first version mismarked
+// positions 2-5 as absent/exact/present/present. It got the COUNT right, two
+// E hints, and the POSITIONS wrong, which is precisely the error a worked
+// example exists to prevent. Caught while writing the test the block
+// specifies: the test is the artifact that checks the record, not just the
+// code. Kept visible rather than quietly amended — a wrong worked example
+// in a record is more dangerous than none, because it gets trusted.)
 //
 // This is the regression test named in CLAUDE.md's Fifth Directive, and it
 // exists before the implementation on purpose.

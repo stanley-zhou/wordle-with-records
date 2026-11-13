@@ -98,10 +98,11 @@ Before serving any change:
 - `just instantiate-check` — unfilled ⟦SIGIL⟧ placeholders and lingering template fixture files. Completeness is computed, not remembered.
 - `scripts/groups-lookup.py --validate` — a malformed crew registry, *and* the Python interpreter/encoding path every other crew recipe depends on. On session one (2026-11-12) running the gate is what surfaced three real bugs in ten minutes: `agent-sessions.json` read with the platform ANSI codepage (`UnicodeDecodeError: 'gbk' codec`, fatal on this CJK-locale Windows box), emoji written to a cp936 stdout (`UnicodeEncodeError`), and `registry_lib.load_config()` calling `sys.exit` with no `sys` imported. None were reachable by reading the code; all three were one gate run away.
 
-*What it must also catch once the app exists* — add each to the `gate` recipe's marked slot the moment it is real, and never leave the slot empty while code is shipping:
-- `npm run build` — Vue SFC template/compile errors and bad imports, which in a Vite SPA fail at build rather than at lint, and would otherwise be discovered by a visitor seeing a white page on GitHub Pages.
-- `npm run test:unit` — the per-letter feedback scorer. This is the one algorithm in a Wordle that is genuinely easy to get wrong (duplicate-letter marking: guess `GEESE` against answer `SEEDS` must not report three greens-or-yellows for `E`). A scoring regression is invisible in casual play and corrupts every game.
-- `npm run lint` / `vue-tsc` — once ADR-0003 settles whether this project is typed.
+*The project's own layer*, filled 2026-11-12 in the same commit that created the npm scripts, so this directive never names a check that does not exist:
+- `npm run test:unit` — 20 tests, ~1s, run first because it is the cheap one that guards the expensive mistakes: the feedback scorer's duplicate-letter contract (`GEESE` against `SEEDS` must report **two** E-hints, not three), the answer corpus's integrity under hand-editing (no duplicates, five uppercase letters, every word glossed), and the saved-board guard. A scoring regression is invisible in casual play and corrupts every game.
+- `npm run build` — runs `vue-tsc` first, catching Vue SFC template/compile and type errors that a dev server tolerates happily. In a Vite SPA these surface at build time and their production symptom is a blank white page, not a stack trace.
+
+*What the gate still cannot tell you*: that the deployed site works. `base` is verified at build time by inspecting `dist/index.html` for the `/wordle-with-records/` prefix, but only a real Pages deploy proves it — which is why ADR-0003 carries that as its own unticked validation row.
 
 **Process**:
 ```bash
@@ -258,11 +259,13 @@ If the script was successfully used, append as comments how, and what the outcom
 A Wordle variant whose answers are all computer-science vocabulary (ARRAY, STACK, QUEUE, CACHE, TOKEN…): guess the word, get per-letter colored feedback. It ships as a static Vue single-page app on GitHub Pages — free hosting, no backend, therefore no server-side secret — with component-scoped CSS so styles stay local to the component that owns them. This repo is both the product and its record: implementation lives here next to the ADRs that decided it.
 
 ### Current focus:
-**Implementing v1**, now that ADR-0001–0003 are all `Accepted` with no questions open (`just unanswered` confirms). In flight:
-1. Scaffold Vue 3 + Vite + TypeScript; `base: '/wordle-with-records/'`; Actions→Pages workflow.
-2. `src/game/score.ts` — the feedback scorer, **its duplicate-letter regression test written first**.
-3. A drafted ~60-word CS corpus for Stanley to ratify strike-a-row.
-4. Fill the `gate` recipe's project slot in the same commit that creates the npm scripts, so the Fifth Directive stops promising checks that do not exist.
+**v1 is built and playable** (`npm run dev`); ADR-0001–0003 all `Accepted`, no questions open. Done: Vue 3 + Vite + TypeScript scaffold, the scorer with its tests written first, endless-play puzzle selection, the saved-board guard, scoped-CSS components, the Actions→Pages workflow, and the `gate` recipe's project slot filled.
+
+**Two things waiting on Stanley, in order:**
+1. **Ratify the corpus** — strike rows in [`docs/corpus-draft-2026-11-12.md`](docs/corpus-draft-2026-11-12.md). 66 candidates, ~60 target. `src/data/answers.json` ships marked `draft-pending-ratification` so the game is playable meanwhile; ratification is a prune, not a blocker. >20 struck triggers the recalibration clause in ADR-0001.
+2. **Enable GitHub Pages** — Settings → Pages → Source: "GitHub Actions". The first deploy fails without it, with an error that reads like a workflow bug.
+
+**Next on me**: verify a permissively-licensed five-letter English word list, record its source and licence in ADR-0001, *then* create `src/data/guessable.json` and swap the one line in `src/game/validate.ts`. Until then guesses are limited to the CS corpus, which looks exactly like the option ADR-0001 rejected — `validator.isInterim` makes the UI say so out loud rather than letting the stand-in pass for the decision.
 
 ### Key decisions made:
 - **Answer corpus & guess validation** — [ADR-0001](docs/adr/0001-answer-corpus-and-guess-validation.md) *(Accepted)*: answers from a hand-ratified CS corpus (~60 words in v1, growing toward ~300); guesses validated against a standard English five-letter list, which must carry a recorded source and licence and therefore arrives *after* the first playable build, behind an interface.

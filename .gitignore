@@ -7,3 +7,11 @@
 # Python temporary files
 __pycache__/
 *.py[cod]
+# ADR Manager extension's local draft scratch (answer drafts in progress).
+# Per-machine working state, not substrate — the ADR itself is the record.
+docs/adr/.working/
+
+# Node / Vite (ADR-0003)
+node_modules/
+dist/
+*.local
